@@ -75,11 +75,22 @@ def analyze(boards, win_map, intended_board, player):
             elif piece == O:
                 advantage -= tile_powers[i] * 0.4
 
+    XC, OC = has_chance(win_map)
+    advantage += 10 if XC else 0
+    advantage -= 10 if OC else 0
 
     if player == X and win_map[intended_board] != 0:
         advantage += 2
     elif player == O and win_map[intended_board] != 0:
         advantage -= 2 
+
+    if not any(not all(sub) for sub in boards):
+        for a, b, c in win_patterns:
+            if 0 < win_map[a] == win_map[b] == win_map[c] < _:
+                # return new, new_win_map, player
+                return 100 if win_map[a] == X else -100
+
+        return 0
 
     return advantage
 
@@ -94,7 +105,16 @@ def place(boards, win_map, i, player):
     sub = new[board]
     if all(sub):
         new_win_map[board] = _
+        if not any(not all(sub) for sub in boards):
+            for a, b, c in win_patterns:
+                if 0 < new_win_map[a] == new_win_map[b] == new_win_map[c] < _:
+                    # return new, new_win_map, player
+                    return new, new_win_map, new_win_map[a]
+
+            return new, new_win_map, _
+        
         return new, new_win_map, None
+
     
     for a, b, c in win_patterns:
         if sub[a] == sub[b] == sub[c] == player:
@@ -133,12 +153,12 @@ MAX_DEPTH = 6
 # NUM_CONSIDER = 10
 
 def recurse(boards, win_map, player, intended_board, depth):
-    if depth == MAX_DEPTH:
-        return None, analyze(boards, win_map, intended_board, 3 - player)
     
     # X1 -> +, O2 -> -
 
     options = find_possible_moves(boards, intended_board)
+    if depth == MAX_DEPTH or not options:
+        return None, analyze(boards, win_map, intended_board, 3 - player)
 
     # for option in options:
     #     new_boards, new_win_map, winner = place(boards, win_map, option, player)
